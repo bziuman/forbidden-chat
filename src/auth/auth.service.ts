@@ -14,13 +14,11 @@ import { JwtService } from '@nestjs/jwt';
 import { DatabaseExceptionInterseptor } from './interceptors/dbException.interceptor';
 import { JwtInterceptor } from './interceptors/jwtException.interceptor';
 import { AllExceptionFilter } from './exeptionfilters/exception.filter';
-import * as path from 'node:path';
-import { AvatarPathDto } from './dto/avatarPath.dto';
 import { hashPassword } from 'src/utils/hashPassword';
 import { Signup200Dto } from './dto/200signup.dto';
 import { Response } from 'express';
 import { verifyPassword } from 'src/utils/verifyPassword';
-import { writeFile } from 'node:fs/promises';
+import { saveAvatar } from 'src/utils/saveAvatar';
 
 @Injectable()
 export class AuthService {
@@ -47,7 +45,7 @@ export class AuthService {
       password: password,
       salt: 'salt',
     });
-    const avatarPath = await this.saveAvatar(username, avatar);
+    const avatarPath = await saveAvatar(username, avatar);
     const user = await this.userRepository.create({
       username: username,
       password: hashedUserPassword,
@@ -99,19 +97,4 @@ export class AuthService {
   }
 
   async logOut() {}
-
-  async saveAvatar(
-    username: string,
-    avatar: Express.Multer.File,
-  ): Promise<AvatarPathDto> {
-    if (!avatar) return { success: false, path: '' };
-    const pathAvatarSave = path.join(
-      `/Users/bohdanziuman/Desktop/forbidden-chat/upload-files/UsersAvatars`,
-      `${username}${avatar.originalname}`,
-    );
-
-    await writeFile(pathAvatarSave, avatar.buffer);
-
-    return { success: true, path: pathAvatarSave };
-  }
 }
