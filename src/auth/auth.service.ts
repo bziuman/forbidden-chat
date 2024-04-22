@@ -1,6 +1,5 @@
 import {
   Injectable,
-  UsePipes,
   UseInterceptors,
   BadRequestException,
   Res,
@@ -12,11 +11,10 @@ import { Repository } from 'typeorm';
 import { SignupUserDataDto } from './dto/signupUserData.dto';
 import { SigninUserDataDto } from './dto/signinUserData.dto';
 import { JwtService } from '@nestjs/jwt';
-import { MatchPasswordPipe } from './pipes/matchPassword.pipe';
 import { DatabaseExceptionInterseptor } from './interceptors/dbException.interceptor';
 import { JwtInterceptor } from './interceptors/jwtException.interceptor';
 import { AllExceptionFilter } from './exeptionfilters/exception.filter';
-import { join } from 'node:path';
+import * as path from 'node:path';
 import { AvatarPathDto } from './dto/avatarPath.dto';
 import { hashPassword } from 'src/utils/hashPassword';
 import { Signup200Dto } from './dto/200signup.dto';
@@ -32,7 +30,6 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  @UsePipes(MatchPasswordPipe)
   @UseInterceptors(DatabaseExceptionInterseptor, AllExceptionFilter)
   async signUp(
     signupData: SignupUserDataDto,
@@ -108,10 +105,13 @@ export class AuthService {
     avatar: Express.Multer.File,
   ): Promise<AvatarPathDto> {
     if (!avatar) return { success: false, path: '' };
-    //const writeFile = promisify(createWriteStream);
-    const path = join('../../upload-files/UsersAvatars', avatar.originalname);
-    await writeFile(path, avatar.buffer);
+    const pathAvatarSave = path.join(
+      `/Users/bohdanziuman/Desktop/forbidden-chat/upload-files/UsersAvatars`,
+      `${username}${avatar.originalname}`,
+    );
 
-    return { success: true, path: path };
+    await writeFile(pathAvatarSave, avatar.buffer);
+
+    return { success: true, path: pathAvatarSave };
   }
 }

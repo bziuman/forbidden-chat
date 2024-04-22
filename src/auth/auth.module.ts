@@ -9,6 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/db/pg/entites/user.entity';
 import { AuthService } from './auth.service';
 import { Session } from 'src/db/pg/entites/session.entity';
+import { ValidateSignupPipe } from './pipes/validateSignup.pipe';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { Session } from 'src/db/pg/entites/session.entity';
   controllers: [AuthController],
   providers: [
     AuthService,
+    ValidateSignupPipe,
     MatchPasswordPipe,
     DatabaseExceptionInterseptor,
     JwtInterceptor,
