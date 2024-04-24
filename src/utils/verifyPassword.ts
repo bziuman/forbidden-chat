@@ -4,10 +4,12 @@ import { hashPassword } from './hashPassword';
 export const verifyPassword = async (
   verifyData: VerifyPasswordDto,
 ): Promise<boolean> => {
+  const { username, password, heshedPassword, salt } = verifyData;
   const hash = await hashPassword({
-    password: verifyData.password,
-    salt: verifyData.salt,
+    username: username,
+    password: password,
+    salt: salt,
   });
 
-  return hash === verifyData.heshedPassword;
+  return hash === heshedPassword;
 };
