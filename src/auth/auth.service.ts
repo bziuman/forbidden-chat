@@ -3,6 +3,9 @@ import {
   UseInterceptors,
   BadRequestException,
   Res,
+  HttpException,
+  HttpStatus,
+  Req,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Session } from 'src/db/pg/entites/session.entity';
@@ -15,8 +18,7 @@ import { DatabaseExceptionInterseptor } from './interceptors/dbException.interce
 import { JwtInterceptor } from './interceptors/jwtException.interceptor';
 import { AllExceptionFilter } from './exeptionfilters/exception.filter';
 import { hashPassword } from 'src/utils/hashPassword';
-import { Signup200Dto } from './dto/200signup.dto';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { verifyPassword } from 'src/utils/verifyPassword';
 import { saveAvatar } from 'src/utils/saveAvatar';
 
@@ -31,9 +33,9 @@ export class AuthService {
   @UseInterceptors(DatabaseExceptionInterseptor, AllExceptionFilter)
   async signUp(
     signupData: SignupUserDataDto,
-    avatar: Express.Multer.File,
-  ): Promise<Signup200Dto> {
-    const { username, password, bio } = signupData;
+    @Res() response: Response,
+  ): Promise<Response> {
+    const { username, password, avatarFile, bio } = signupData;
     const checkUserExist = await this.userRepository.findOne({
       where: { username: username },
     });
@@ -41,23 +43,49 @@ export class AuthService {
     if (checkUserExist) {
       throw new BadRequestException('User with this name alredy exist');
     }
-    const hashedUserPassword = await hashPassword({
-      password: password,
-      salt: 'salt',
-    });
-    const avatarPath = await saveAvatar(username, avatar);
-    const user = await this.userRepository.create({
+
+    const avatarPath = await saveAvatar({
       username: username,
-      password: hashedUserPassword,
-      avatarUrl: avatarPath.path,
-      bio: bio,
+      fileAvatar: avatarFile,
     });
 
     try {
-      await this.userRepository.save(user);
-      return { success: true, message: 'Succes registration new user' };
+      const hashedUserPassword = await hashPassword({
+        username: username,
+        password: password,
+        salt: 'salt',
+      });
+
+      const user = await this.userRepository.create({
+        username: username,
+        password: hashedUserPassword,
+        avatarUrl: avatarPath.path,
+        bio: bio,
+      });
+
+      if (!user)
+        throw new HttpException(
+          'Failed creation user',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+
+      try {
+        await this.userRepository.save(user);
+        return response
+          .cookie('access_token', hashedUserPassword)
+          .status(200)
+          .json({ success: true, message: 'Succes registration new user' });
+      } catch (error) {
+        throw new HttpException(
+          'Failed creation user',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     } catch (error) {
-      return { success: false, message: 'Faild registration' };
+      throw new HttpException(
+        'Failed creating token',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -67,17 +95,31 @@ export class AuthService {
     AllExceptionFilter,
   )
   async signIn(
-    signinData: SigninUserDataDto,
+    @Req() request: Request,
     @Res() response: Response,
+    signinData: SigninUserDataDto,
   ): Promise<Response> {
     const { username, password } = signinData;
+    const userCookieToken = request.cookies['access_token'];
+
+    if (!userCookieToken)
+      throw new HttpException('Bad token', HttpStatus.BAD_REQUEST);
 
     const user = await this.userRepository.findOne({
       where: { username: username },
       relations: ['friends'],
     });
 
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+
+    if (userCookieToken !== user.password)
+      throw new HttpException(
+        'Incorrect password or bad token',
+        HttpStatus.BAD_REQUEST,
+      );
+
     const isPasswordValide = await verifyPassword({
+      username: username,
       password: password,
       heshedPassword: user.password,
       salt: 'salt',
@@ -85,15 +127,38 @@ export class AuthService {
 
     if (!isPasswordValide) throw new BadRequestException('Password incorect');
 
+    const session = await this.sessionRepository.create({ user: user });
+
+    if (!session)
+      throw new HttpException(
+        'Error creating user session',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+
+    await this.sessionRepository.save(session);
+
     const jwtToken = await this.jwtService.signAsync({
-      id: user.id,
+      sessionId: session.id,
       username: user.username,
     });
 
+    user.password = jwtToken;
+    await this.userRepository.save(user);
+    const { avatarUrl, bio, friends } = user;
     return response
       .cookie('access_token', jwtToken)
+      .cookie('session_id', session.id)
       .status(200)
-      .json({ success: true, message: 'Succes logged' });
+      .json({
+        success: true,
+        message: 'Succes logged',
+        user: {
+          username: username,
+          avatarUrl: avatarUrl,
+          bio: bio,
+          friends: friends,
+        },
+      });
   }
 
   async logOut() {}
