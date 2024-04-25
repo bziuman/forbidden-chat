@@ -11,13 +11,10 @@ export class SearchService {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
-  async getUserByName(
-    seachedUserData: SearchUserDto,
-  ): Promise<SearchedUserDto> {
-    const { username } = seachedUserData;
+  async getUserByName(searchUserData: SearchUserDto): Promise<SearchedUserDto> {
+    const { username } = searchUserData;
     const user = await this.userRepository.findOne({
       where: { username: username },
-      relations: ['friends'],
     });
 
     if (!user) {

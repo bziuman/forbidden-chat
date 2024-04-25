@@ -1,5 +1,5 @@
 export class HashPasswordDto {
-  username: string;
+  //username: string;
   password: string;
   salt: string;
 }

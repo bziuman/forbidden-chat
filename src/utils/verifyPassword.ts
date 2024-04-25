@@ -6,7 +6,7 @@ export const verifyPassword = async (
 ): Promise<boolean> => {
   const { username, password, heshedPassword, salt } = verifyData;
   const hash = await hashPassword({
-    username: username,
+    //username: username,
     password: password,
     salt: salt,
   });

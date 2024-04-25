@@ -6,14 +6,16 @@ import { SaveAvatarDto } from './dto/saveAvatar.dto';
 export const saveAvatar = async (
   data: SaveAvatarDto,
 ): Promise<AvatarPathDto> => {
-  const { username, fileAvatar } = data;
-  if (!fileAvatar) return { success: false, path: '' };
+  
+
+  const { username, avatarFile } = data;
+  if (!avatarFile) return { success: false, path: '' };
   const pathAvatarSave = path.join(
     `/Users/bohdanziuman/Desktop/forbidden-chat/upload-files/UsersAvatars`,
-    `${username}${fileAvatar.originalname}`,
+    `${username}${avatarFile.originalname}`,
   );
 
-  await writeFile(pathAvatarSave, fileAvatar.buffer);
+  await writeFile(pathAvatarSave, avatarFile.buffer);
 
   return { success: true, path: pathAvatarSave };
 };

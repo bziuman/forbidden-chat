@@ -2,8 +2,8 @@ import {
   Body,
   Controller,
   Get,
-  Param,
   Put,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -11,9 +11,12 @@ import {
 import { UserService } from './user.service';
 import { AuthTokenGuard } from 'src/auth/guards/authToken.guard';
 import { UserDto } from './dto/user.dto';
-import { FriendRequestDto } from './dto/friendRequest.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UpdateAvatarDto } from './dto/updateAvatar.dto';
+import { UpdateBioDto } from './dto/updateBio.dto';
+import { FriendsListDto } from './dto/friendsList.dto';
+import { StatusFriendshipListRequestDto } from './dto/statusFriendshipRequest.dto';
+import { SuccessUpdateAvatarDto } from './dto/successUpdateAvatar.dto';
+import { SuccessUpdateBioDto } from './dto/successUpdateBio.dto';
 
 @UseGuards(AuthTokenGuard)
 @Controller('/users/:id')
@@ -21,30 +24,36 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @Get()
-  async getUser(@Param('id') id: number): Promise<UserDto> {
-    return await this.userService.getUser(id);
+  async getUser(@Req() request: any): Promise<UserDto> {
+    return await this.userService.getUser(request);
   }
 
   @Get('/friends')
-  async getFriends(@Param() id: number): Promise<object> {
-    return await this.userService.getFriends(id);
+  async getFriends(@Req() request: any): Promise<FriendsListDto> {
+    return await this.userService.getFriends(request);
   }
 
   @Get('/friends-requests')
-  async getFriendsRequests(@Body() friendRequestData: FriendRequestDto) {
-    return await this.userService.getFriendRequest(friendRequestData);
+  async getFriendsRequests(
+    @Req() request: any,
+  ): Promise<StatusFriendshipListRequestDto> {
+    return await this.userService.getFriendRequest(request);
   }
 
   @Put('/avatar')
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(FileInterceptor('avatarFile'))
   async updateUserAvatar(
-    @Param('id') @UploadedFile() updateAvatarFile: UpdateAvatarDto,
-  ) {
-    return await this.userService.updateUserAvatar(updateAvatarFile);
+    @Req() request: any,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<SuccessUpdateAvatarDto> {
+    return await this.userService.updateUserAvatar(request, file);
   }
 
-  @Put('bio')
-  async updateUserBio(@Param('id') userId: number, @Body('bio') bio: string) {
-    return await this.userService.updateUserBio(userId, bio);
+  @Put('/bio')
+  async updateUserBio(
+    @Req() request: any,
+    @Body() updateBioData: UpdateBioDto,
+  ): Promise<SuccessUpdateBioDto> {
+    return await this.userService.updateUserBio(request, updateBioData);
   }
 }

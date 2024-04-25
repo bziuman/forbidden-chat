@@ -1,16 +1,12 @@
-import jwt from 'jsonwebtoken';
 import { GetDataFromToken } from './dto/getDataFromToken.dto';
 import { DataFromTokenDto } from './dto/dataFromToken.dto';
+import { JwtService } from '@nestjs/jwt';
 
 export const getDataFromToken = async (
   data: GetDataFromToken,
 ): Promise<DataFromTokenDto> => {
-  return new Promise((resolve, reject) => {
-    const { token, secretKey } = data;
-    jwt.verify(token, secretKey, (error, decoded) => {
-      if (error) reject(error);
-      const userData = decoded as DataFromTokenDto;
-      resolve(userData);
-    });
-  });
+  const { token, secretKey } = data;
+  const jwtService = new JwtService();
+  const dec = jwtService.verifyAsync(token, { secret: secretKey });
+  return dec;
 };
