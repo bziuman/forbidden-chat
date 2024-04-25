@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Friend } from 'src/db/pg/entites/friend.entity';
 import { User } from 'src/db/pg/entites/user.entity';
@@ -15,35 +15,43 @@ export class FriendsService {
   ) {}
 
   async requestToFriendship(
+    @Req() request: any,
     requestToFriendshipData: FriendshipDto,
   ): Promise<FriendshipResponseDto> {
-    return await this.updateFriendshipStatus(requestToFriendshipData);
+    return await this.updateFriendshipStatus(request, requestToFriendshipData);
   }
 
   async acceptFriendship(
+    @Req() request: any,
     acceptFriendRequestData: FriendshipDto,
   ): Promise<FriendshipResponseDto> {
-    return await this.updateFriendshipStatus(acceptFriendRequestData);
+    return await this.updateFriendshipStatus(request, acceptFriendRequestData);
   }
 
   async rejectFriendship(
+    @Req() request: any,
     rejectFriendshipData: FriendshipDto,
   ): Promise<FriendshipResponseDto> {
-    return await this.updateFriendshipStatus(rejectFriendshipData);
+    return await this.updateFriendshipStatus(request, rejectFriendshipData);
   }
 
   async deleteFriendship(
+    @Req() request: any,
     deleteFriendshipData: FriendshipDto,
   ): Promise<FriendshipResponseDto> {
-    return await this.updateFriendshipStatus(deleteFriendshipData);
+    return await this.updateFriendshipStatus(request, deleteFriendshipData);
   }
 
   private async updateFriendshipStatus(
+    @Req() request: any,
     updateFriendshipData: FriendshipDto,
   ): Promise<FriendshipResponseDto> {
-    const { username, friendName, status } = updateFriendshipData;
+    const { username } = request.userTokenData;
+    const { friendName, status } = updateFriendshipData;
+
     const user = await this.userRepository.findOne({
       where: { username: username },
+      relations: ['friends'],
     });
 
     if (!user)
@@ -54,6 +62,7 @@ export class FriendsService {
 
     const friend = await this.userRepository.findOne({
       where: { username: friendName },
+      relations: ['friends'],
     });
 
     if (!friend)
@@ -63,7 +72,10 @@ export class FriendsService {
       );
 
     const friendship = await this.friendRepository.findOne({
-      where: { user: user, friend: friend },
+      where: [
+        { user: user, friend: friend },
+        { user: friend, friend: user },
+      ],
     });
 
     if (!friendship)

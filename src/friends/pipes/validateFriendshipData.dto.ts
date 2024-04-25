@@ -1,10 +1,13 @@
-import { HttpException, HttpStatus, PipeTransform } from '@nestjs/common';
+import { HttpException, HttpStatus, PipeTransform, Req } from '@nestjs/common';
 import { FriendshipDto } from '../dto/friendship.dto';
 import { FriendshipStatus } from '../enum/friendshipStatus.enum';
 
 export class ValidateFriendshipDataPipe implements PipeTransform {
-  transform(friendshipData: FriendshipDto): FriendshipDto {
-    const { username, friendName, status } = friendshipData;
+  transform(@Req() value: any): FriendshipDto {
+    console.log(value);
+
+    const username = '123123';
+    const { friendName, status } = value;
 
     if (!username || !friendName)
       throw new HttpException(
@@ -38,6 +41,6 @@ export class ValidateFriendshipDataPipe implements PipeTransform {
       );
     }
 
-    return friendshipData;
+    return value;
   }
 }
