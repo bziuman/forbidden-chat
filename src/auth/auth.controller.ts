@@ -34,7 +34,7 @@ export class AuthController {
     return await this.authService.signUp(signupData, response);
   }
 
-  @UseGuards(AuthTokenGuard)
+  //@UseGuards(AuthTokenGuard)
   @Post('/sign-in')
   async singIn(
     @Req() request: Request,
@@ -44,7 +44,7 @@ export class AuthController {
     return await this.authService.signIn(request, response, signinData);
   }
 
-  @UseGuards(AuthTokenGuard)
+  //@UseGuards(AuthTokenGuard)
   @Post('/log-out')
   async logOut() {}
 }

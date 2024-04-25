@@ -46,12 +46,12 @@ export class AuthService {
 
     const avatarPath = await saveAvatar({
       username: username,
-      fileAvatar: avatarFile,
+      avatarFile: avatarFile,
     });
 
     try {
       const hashedUserPassword = await hashPassword({
-        username: username,
+        //username: username,
         password: password,
         salt: 'salt',
       });
